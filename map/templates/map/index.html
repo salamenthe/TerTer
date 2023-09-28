@@ -1,0 +1,50 @@
+<head>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+</head>
+
+<h1> Hello, welcome to the map module </h1>
+
+<div id="map" style="height: 600px; width: 100%;"></div>
+
+{{ stations|json_script:"stations_json"}}
+<script>
+    var map = L.map('map').setView([46.81,3.12], 6);
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+
+    stations = JSON.parse(document.getElementById('stations_json').textContent)
+
+    stations.forEach(station => {
+        L.marker([station.latitude,station.longitude]).addTo(map)
+    });
+
+    map.on('click',(event) => {
+        let lat = event.latlng.lat
+        let lng = event.latlng.lng
+        L.marker([lat,lng]).addTo(map)
+        fetch(`get-nearest-station?latitude=${lat}&longitude=${lng}`).then(response => response.json()).then(result => {
+            station_coordinates = result.coordinates
+            user_coordinates = [lat, lng]
+            L.Routing.control({
+                waypoints:   [
+                user_coordinates,
+                station_coordinates
+                ]
+            }).addTo(map);
+            L.popup()
+                .setLatLng([lat,lng])
+                .setContent(`La gare la plus proche est à ${Math.round(result.distance*10)/10} km`)
+                .openOn (map)
+        })
+    })
+</script>
